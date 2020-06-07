@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+  grpc:
+    environment:
+      - DB_HOST=192.168.0.120
+      - ENV=Dev
+    image: person
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    cap_drop:
+      - ALL
+    mem_limit: 64m
+    mem_reservation: 20m
+    mem_swappiness: 0
+    read_only: true

@@ -1,0 +1,19 @@
+* listen for closing signal
+* splunk support
+* add tracing [appD support] - https://medium.com/swlh/distributed-tracing-for-go-microservice-with-opentracing-1fc1aec76b3e
+* make sure correlationid is supported
+* switch to generated validation - https://github.com/envoyproxy/protoc-gen-validate
+* customize zap logs
+  - https://stackoverflow.com/questions/52274353/how-to-custom-log-format-when-use-zap
+  - https://medium.com/@amsokol.com/tutorial-part-3-how-to-develop-go-grpc-microservice-with-http-rest-endpoint-middleware-739aac8f1d7e
+* extend out where logging is - https://www.oreilly.com/content/how-to-ship-production-grade-go/
+* make sure context is added/used properly - https://blog.golang.org/context
+* rate limiting 
+* connection string conversion from c# style to go style
+* auth via JWT 
+  - https://github.com/dgrijalva/jwt-go
+  - https://github.com/grpc-ecosystem/go-grpc-middleware/tree/master/auth
+  - https://github.com/kelseyhightower/grpc-hello-service
+* pprof support - https://blog.golang.org/pprof
+* expvars support - https://sysdig.com/blog/golang-expvar-custom-metrics/
+* prometheus support [grpc & general perf stats] - https://prometheus.io/docs/guides/go-application/

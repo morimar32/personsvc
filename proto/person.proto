@@ -1,0 +1,88 @@
+syntax = "proto3";
+option go_package = "proto;person";
+
+package person;
+
+import "google/api/annotations.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+	info: {
+		title: "Person Microservice";
+		version: "1.0";
+	};
+};
+
+message PersonRequest {
+	string id = 1;
+}
+
+message AddPersonRequest {
+	string firstName = 1;
+	google.protobuf.StringValue middleName = 2;
+	string lastName = 3;
+	google.protobuf.StringValue suffix = 4;
+}
+
+message UpdatePersonRequest {
+	string id = 1;
+	string firstName = 2;
+	google.protobuf.StringValue middleName = 3;
+	string lastName = 4;
+	google.protobuf.StringValue suffix = 5;
+}
+
+message PersonResponse {
+	string id = 1;
+	string firstName = 2;
+	google.protobuf.StringValue middleName = 3;
+	string lastName = 4;
+	google.protobuf.StringValue suffix = 5;
+	google.protobuf.Timestamp created = 6;
+	google.protobuf.Timestamp updated = 7;
+}
+
+message PersonListResponse {
+	repeated PersonResponse Persons = 1;
+}
+
+service Person {
+	option (grpc.gateway.protoc_gen_swagger.options.openapiv2_tag) = {
+		description: "Service for managing information for a Person"
+	};
+	rpc GetPerson(PersonRequest) returns (PersonResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/person/{id}"
+		};
+	};
+	rpc GetPersons(google.protobuf.Empty) returns (PersonListResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/person"
+		};
+	};
+	rpc AddPerson(AddPersonRequest) returns (PersonResponse) {
+		option (google.api.http) = {
+			post: "/api/v1/person",
+			body: "*"
+		};
+	};
+	rpc UpdatePerson(UpdatePersonRequest) returns (PersonResponse) {
+		option (google.api.http) = {
+			put: "/api/v1/person",
+			body: "*"
+		};
+	};
+	rpc DeletePerson(PersonRequest) returns (google.protobuf.Empty) {
+		option (google.api.http) = {
+			delete: "/api/v1/person/{id}"
+		};
+	};
+	rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {
+		option (google.api.http) = {
+			get: "/api/v1/healthz"
+		};
+	}
+}
