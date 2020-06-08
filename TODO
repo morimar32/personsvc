@@ -1,5 +1,7 @@
 * listen for closing signal
+* add volume mount to docker compose for encryption keys
 * splunk support
+* update to include interceptors for hexagonal approach
 * add tracing [appD support] - https://medium.com/swlh/distributed-tracing-for-go-microservice-with-opentracing-1fc1aec76b3e
 * make sure correlationid is supported
 * switch to generated validation - https://github.com/envoyproxy/protoc-gen-validate
@@ -8,6 +10,7 @@
   - https://medium.com/@amsokol.com/tutorial-part-3-how-to-develop-go-grpc-microservice-with-http-rest-endpoint-middleware-739aac8f1d7e
 * extend out where logging is - https://www.oreilly.com/content/how-to-ship-production-grade-go/
 * make sure context is added/used properly - https://blog.golang.org/context
+* slight restructuring of project? conceptually extend to supporting more than just a person object
 * rate limiting 
 * connection string conversion from c# style to go style
 * auth via JWT 
@@ -17,3 +20,5 @@
 * pprof support - https://blog.golang.org/pprof
 * expvars support - https://sysdig.com/blog/golang-expvar-custom-metrics/
 * prometheus support [grpc & general perf stats] - https://prometheus.io/docs/guides/go-application/
+* k8s scripts
+* add eventing [rabbitmq?]

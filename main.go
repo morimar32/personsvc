@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
-	"github.com/joho/godotenv"
-	"github.com/morimar32/helpers/encryption"
+	env "github.com/morimar32/helpers/environment"
 )
 
 const (
@@ -19,30 +17,16 @@ var (
 )
 
 func init() {
-	env := os.Getenv("ENV")
-	if len(env) <= 0 {
-		env = "Dev"
+	if err := env.LoadEnvironmentFile(); err != nil {
+		log.Fatal(err)
 	}
-	envPath := fmt.Sprintf(".%s.env", env)
-	godotenv.Load(envPath)
-	connEnc := os.Getenv("connectionString")
-	if len(connEnc) <= 0 {
-		log.Fatalf("connectionString not defined in %s\n", envPath)
-	}
-	connPart, err := encryption.Decrypt(connEnc)
+	connPart, err := env.GetEncryptedValue("connectionString")
 	if err != nil {
 		log.Fatal(err)
 	}
-	if len(connPart) <= 0 {
-		log.Fatalf("connectionString decrypted to empty in %s\n", envPath)
-	}
 
-	dbServer := os.Getenv("DB_HOST")
-	if len(dbServer) <= 0 {
-		dbServer = "localhost"
-	}
+	dbServer := env.GetValueWithDefault("DB_HOST", "localhost")
 	connectionString = fmt.Sprintf(connPart, dbServer)
-
 }
 
 func main() {
