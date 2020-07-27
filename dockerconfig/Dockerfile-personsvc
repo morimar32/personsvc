@@ -1,0 +1,26 @@
+# https://medium.com/@chemidy/create-the-smallest-and-secured-golang-docker-image-based-on-scratch-4752223b7324
+FROM svc_build_base AS builder
+
+WORKDIR $GOPATH/src/personsvc/
+COPY . .
+
+RUN make generate_docker_prep; make generate; make release_docker; make healthchk
+RUN cp svc /
+RUN cp ping /
+RUN cp -R swagger /
+RUN cp .*.env /
+
+FROM scratch
+EXPOSE 8080 9090 6060
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+COPY --from=builder /swagger /swagger
+COPY --from=builder /svc /svc
+COPY --from=builder /ping /ping
+COPY --from=builder /.*.env /
+
+USER appuser:appuser
+ENTRYPOINT ["/svc"]
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD [ "/ping" ]

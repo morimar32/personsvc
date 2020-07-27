@@ -1,0 +1,24 @@
+# https://medium.com/@chemidy/create-the-smallest-and-secured-golang-docker-image-based-on-scratch-4752223b7324
+FROM golang:alpine
+
+RUN apk update && apk add --no-cache git ca-certificates tzdata make upx gcc libc-dev grpc-dev protobuf-dev && update-ca-certificates
+
+ENV USER=appuser
+ENV UID=10001
+
+RUN adduser \    
+    --disabled-password \    
+    --gecos "" \    
+    --home "/nonexistent" \    
+    --shell "/sbin/nologin" \    
+    --no-create-home \    
+    --uid "${UID}" \    
+    "${USER}"
+
+RUN go get github.com/golang/protobuf/protoc-gen-go
+RUN go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+RUN go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+
+RUN go install github.com/golang/protobuf/protoc-gen-go
+RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
