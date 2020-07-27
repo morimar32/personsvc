@@ -9,6 +9,8 @@ services:
     ports:
       - "8080:8080"
       - "9090:9090"
+    volumes:
+      - /secrets/internal-encryption-certificate:/secrets/internal-encryption-certificate:ro
     cap_drop:
       - ALL
     mem_limit: 64m

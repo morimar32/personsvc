@@ -6,15 +6,11 @@ import (
 	"net/http"
 	"strings"
 
+	person "personsvc/generated"
+
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
-
-	person "personsvc/generated"
 )
-
-func init() {
-	fmt.Println("HTTP init")
-}
 
 func launchHTTP() error {
 	conn, err := grpc.Dial(grpcaddress, grpc.WithInsecure(), grpc.WithBlock())
@@ -46,7 +42,12 @@ func launchHTTP() error {
 			if strings.HasPrefix(r.URL.Path, "/api") {
 				gwmux.ServeHTTP(w, r)
 				return
+			} else if strings.HasPrefix(r.URL.Path, "/proto") {
+				Log.Info("Calling into /proto path")
+				http.ServeFile(w, r, "./proto/person.proto")
+				return
 			}
+
 			swagger.ServeHTTP(w, r)
 		}),
 	}

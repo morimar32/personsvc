@@ -1,9 +1,9 @@
 generate:
 	@if [ -d "./generated" ]; then echo "generated  exist"; else mkdir generated; fi
 
-	@protoc -I. -I${GOPATH}/src/helpers/proto/third_party --go_out=plugins=grpc:./generated proto/*.proto
-	@protoc -I. -I${GOPATH}/src/helpers/proto/third_party --plugin=protoc-gen-grpc-gateway=${GOPATH}/bin/protoc-gen-grpc-gateway --grpc-gateway_out=logtostderr=true:./generated 	proto/*.proto
-	@protoc -I. -I${GOPATH}/src/helpers/proto/third_party --plugin=protoc-gen-swagger=${GOPATH}/bin/protoc-gen-swagger --swagger_out=logtostderr=true:./generated proto/*.proto
+	@protoc -I. -I${GOPATH}/src/github.com/morimar32/helpers/proto/third_party --go_out=plugins=grpc:./generated proto/*.proto
+	@protoc -I. -I${GOPATH}/src/github.com/morimar32/helpers/proto/third_party --plugin=protoc-gen-grpc-gateway=${GOPATH}/bin/protoc-gen-grpc-gateway --grpc-gateway_out=logtostderr=true:./generated 	proto/*.proto
+	@protoc -I. -I${GOPATH}/src/github.com/morimar32/helpers/proto/third_party --plugin=protoc-gen-swagger=${GOPATH}/bin/protoc-gen-swagger --swagger_out=logtostderr=true:./generated proto/*.proto
 
 	@mv ./generated/proto/* ./generated && 	rm -rf ./generated/proto
 	@mv ./generated/*.json ./swagger
@@ -16,7 +16,7 @@ deps:
 
 test:
 	@go vet
-	@go test --race -cover -coverprofile=coverage.out person/service
+	@go test --race -cover -coverprofile=coverage.out personsvc/service
 	@go tool cover -func=coverage.out
 	@rm coverage.out
 
@@ -27,11 +27,11 @@ release: test
 	@upx -9 -q svc
 
 generate_docker_prep:
-	@ln -s ${GOPATH}/src/person/vendor/helpers ${GOPATH}/src/helpers
+	@mkdir ${GOPATH}/src/github.com/morimar32 && ln -s ${GOPATH}/src/personsvc/vendor/github.com/morimar32/helpers ${GOPATH}/src/github.com/morimar32/helpers
 
 test_docker:
 	@go vet
-	@go test -cover -coverprofile=coverage.out person/service
+	@go test -cover -coverprofile=coverage.out personsvc/service
 	@go tool cover -func=coverage.out
 	@rm coverage.out
 
@@ -42,7 +42,7 @@ release_docker: test_docker
 docker:
 	@go mod tidy
 	@go mod vendor
-	@cp -R ../helpers/proto ./vendor/helpers/
+	@cp -R ../helpers/proto/third_party ./vendor/github.com/morimar32/helpers/proto/
 	@docker build . -t person -f ./dockerconfig/Dockerfile-personsvc
 	@echo y | docker image prune
 	@rm -rf vendor

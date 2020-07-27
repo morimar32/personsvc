@@ -19,3 +19,4 @@ ping
 generated/
 healthcheck/healthcheck
 loadtest/loadtest
+vendor/

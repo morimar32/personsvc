@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 
 	person "personsvc/generated"
 	"personsvc/service"
@@ -18,56 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-var (
-	//Log centralized entry point for logging
-	Log *zap.Logger
-)
-
-const ()
-
-func init() {
-	// lvl - global log level: Debug(-1), Info(0), Warn(1), Error(2), DPanic(3), Panic(4), Fatal(5)
-	globalLevel := zapcore.Level(0)
-	highPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= zapcore.ErrorLevel
-	})
-	lowPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= globalLevel && lvl < zapcore.ErrorLevel
-	})
-	consoleInfos := zapcore.Lock(os.Stdout)
-	consoleErrors := zapcore.Lock(os.Stderr)
-
-	ecfg := zapcore.EncoderConfig{
-		TimeKey:        "timestamp",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		MessageKey:     "message",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.LowercaseLevelEncoder,
-		EncodeTime:     zapcore.RFC3339TimeEncoder,
-		EncodeDuration: zapcore.SecondsDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-	}
-	//ecfg := zap.NewProductionEncoderConfig()
-	/*
-		if len(timeFormat) > 0 {
-			customTimeFormat = timeFormat
-			ecfg.EncodeTime = customTimeEncoder
-			useCustomTimeFormat = true
-		}
-	*/
-
-	consoleEncoder := zapcore.NewJSONEncoder(ecfg)
-	core := zapcore.NewTee(
-		zapcore.NewCore(consoleEncoder, consoleErrors, highPriority),
-		zapcore.NewCore(consoleEncoder, consoleInfos, lowPriority),
-	)
-
-	Log = zap.New(core)
-	zap.RedirectStdLog(Log)
-}
 func codeToLevel(code codes.Code) zapcore.Level {
 	if code == codes.OK {
 		// It is DEBUG
@@ -80,8 +29,6 @@ func launchGRPC() error {
 	o := []grpc_zap.Option{
 		grpc_zap.WithLevels(codeToLevel),
 	}
-
-	grpc_zap.ReplaceGrpcLogger(Log)
 
 	opts := []grpc.ServerOption{}
 

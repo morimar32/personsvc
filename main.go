@@ -1,10 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
-	env "github.com/morimar32/helpers/environment"
+	"go.uber.org/zap"
 )
 
 const (
@@ -14,22 +13,14 @@ const (
 
 var (
 	connectionString = ""
+	//Log centralized entry point for logging
+	Log *zap.Logger
 )
 
-func init() {
-	if err := env.LoadEnvironmentFile(); err != nil {
-		log.Fatal(err)
-	}
-	connPart, err := env.GetEncryptedValue("connectionString")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	dbServer := env.GetValueWithDefault("DB_HOST", "localhost")
-	connectionString = fmt.Sprintf(connPart, dbServer)
-}
-
 func main() {
+	go func() {
+		log.Fatal(launchpprof())
+	}()
 	go func() {
 		log.Fatal(launchGRPC())
 	}()

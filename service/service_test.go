@@ -56,24 +56,24 @@ func (m *MockPersonRepository) Get(ctx context.Context, id string) (*PersonEntit
 	if m.getShouldFail {
 		return nil, fmt.Errorf("Could not query")
 	}
-	val := &PersonEntity{
+	entity := &PersonEntity{
 		ID:        "01234567-89ab-cdef-0123-456789abcdef",
 		firstName: "Testy",
 		lastName:  "McTesterFace",
 	}
-	return val, nil
+	return entity, nil
 }
 
 func (m *MockPersonRepository) Update(ctx context.Context, update *PersonEntity) (*PersonEntity, error) {
 	if m.updateShouldFail {
 		return nil, fmt.Errorf("Could not save")
 	}
-	val := &PersonEntity{
+	update = &PersonEntity{
 		ID:        "01234567-89ab-cdef-0123-456789abcdef",
 		firstName: "Testy",
 		lastName:  "McTesterFace",
 	}
-	return val, nil
+	return update, nil
 }
 
 func TestMain(m *testing.M) {
@@ -92,7 +92,10 @@ func TestMain(m *testing.M) {
 func TestGetPerson(t *testing.T) {
 	ctx := context.Background()
 	svc := &PersonService{}
-	svc.db = getMock()
+	interceptor := &PersonInterceptor{
+		db: getMock(),
+	}
+	svc.interceptor = *interceptor
 
 	var testData = []struct {
 		id       string
@@ -100,7 +103,7 @@ func TestGetPerson(t *testing.T) {
 		msg      string
 	}{
 		{"", false, "empty request"},
-		{"123", true, "happy path"},
+		{"01234567-89ab-cdef-0123-456789abcdef", true, "happy path"},
 	}
 	_, err := svc.GetPerson(ctx, nil)
 	if err == nil {
@@ -128,7 +131,10 @@ func TestGetPerson(t *testing.T) {
 func TestUpdatePerson(t *testing.T) {
 	ctx := context.Background()
 	svc := &PersonService{}
-	svc.db = getMock()
+	interceptor := &PersonInterceptor{
+		db: getMock(),
+	}
+	svc.interceptor = *interceptor
 
 	var testData = []struct {
 		id, firstname, middlename, lastname, suffix string

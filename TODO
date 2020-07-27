@@ -1,17 +1,6 @@
-* listen for closing signal
-* add volume mount to docker compose for encryption keys
-* splunk support
-* update to include interceptors for hexagonal approach
-* add tracing [appD support] - https://medium.com/swlh/distributed-tracing-for-go-microservice-with-opentracing-1fc1aec76b3e
-* make sure correlationid is supported
-* switch to generated validation - https://github.com/envoyproxy/protoc-gen-validate
 * customize zap logs
   - https://stackoverflow.com/questions/52274353/how-to-custom-log-format-when-use-zap
   - https://medium.com/@amsokol.com/tutorial-part-3-how-to-develop-go-grpc-microservice-with-http-rest-endpoint-middleware-739aac8f1d7e
-* extend out where logging is - https://www.oreilly.com/content/how-to-ship-production-grade-go/
-* make sure context is added/used properly - https://blog.golang.org/context
-* slight restructuring of project? conceptually extend to supporting more than just a person object
-* rate limiting 
 * connection string conversion from c# style to go style
 * auth via JWT 
   - https://github.com/dgrijalva/jwt-go
@@ -19,6 +8,35 @@
   - https://github.com/kelseyhightower/grpc-hello-service
 * pprof support - https://blog.golang.org/pprof
 * expvars support - https://sysdig.com/blog/golang-expvar-custom-metrics/
-* prometheus support [grpc & general perf stats] - https://prometheus.io/docs/guides/go-application/
-* k8s scripts
-* add eventing [rabbitmq?]
+* 
+* 
+* 
+
+hey -n 5000 -c 100 "http://localhost:8080/api/v1/person/5c143efd-f6b1-4803-965b-06d37b1987bf"
+curl http://localhost:6060/debug/pprof/profile > profile
+go tool pprof -http=":8081" personsvc profile
+
+curl http://localhost:6060/debug/pprof/goroutine  > profile.goroutine
+curl http://localhost:6060/debug/pprof/heap  > profile.heap
+curl http://localhost:6060/debug/pprof/threadcreate  > profile.thread
+curl http://localhost:6060/debug/pprof/block  > profile.block
+curl http://localhost:6060/debug/pprof/mutex  > profile.mutex
+
+curl http://localhost:6060/debug/pprof/profile > profile
+curl http://localhost:6060/debug/pprof/trace?seconds=5  > profile.trace
+
+
+hey -n 5000 -c 500 "http://localhost:8080/api/v1/person/5c143efd-f6b1-4803-965b-06d37b1987bf"
+
+ghz -n 5000 -c 100 --insecure --proto ./proto/person.proto --call person.Person/GetPerson -d '{"id":"5c143efd-f6b1-4803-965b-06d37b1987bf"}' 0.0.0.0:9090
+
+Summary:
+  Count:        25,000
+  Requests/sec: 3930.22
+
+Latency distribution:
+  50 % in 251.08 ms 
+  75 % in 260.62 ms 
+  90 % in 277.13 ms 
+  95 % in 286.81 ms 
+  99 % in 320.59 ms 

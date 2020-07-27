@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
 
+	br "github.com/morimar32/helpers/errors"
 	"github.com/morimar32/helpers/proto"
 
 	person "personsvc/generated"
@@ -15,69 +17,62 @@ import (
 
 // NewPersonService Factory to create a new PersonService instance
 func NewPersonService(db *IPersonRepository, Log *zap.Logger) person.PersonServer {
-	ret := &PersonService{}
-	ret.db = *db
-	ret.log = Log
+	ret := &PersonService{
+		log:         Log,
+		interceptor: NewPersonInterceptor(db),
+	}
 	return ret
 }
 
 // PersonService service for interacting with person records
 type PersonService struct {
-	db IPersonRepository
 	person.PersonServer
-	log *zap.Logger
+	log         *zap.Logger
+	interceptor PersonInterceptor
 }
 
-/*
-// AuthFuncOverride is called instead of exampleAuthFunc
-func (g *PersonService) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
-	log.Println("client is calling method:", fullMethodName)
-	return ctx, nil
-}
-*/
 // GetPerson returns a person record from the system
 func (s *PersonService) GetPerson(ctx context.Context, req *person.PersonRequest) (*person.PersonResponse, error) {
-	if err := s.validateGet(req); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, err.Error())
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "must pass in a value")
 	}
-	model, err := s.db.Get(ctx, req.Id)
+	model, err := s.interceptor.GetPerson(ctx, req.Id)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, translateError(err)
 	}
-	if model == nil {
-		return nil, status.Errorf(codes.NotFound, "Person not found")
-	}
+	defer PutPersonEntity(model)
+
 	resp := personEntityToPersonResponse(model)
 	return resp, nil
 }
 
 // GetPersons Returns all persons in the database, alphabetically
 func (s *PersonService) GetPersons(ctx context.Context, in *empty.Empty) (*person.PersonListResponse, error) {
-	list, err := s.db.GetList(ctx)
+	list, err := s.interceptor.GetPersons(ctx)
 	if err != nil {
-		return nil, err
+		return nil, translateError(err)
 	}
-	ret := &person.PersonListResponse{
-		Persons: make([]*person.PersonResponse, 0),
-	}
-	for _, item := range list {
-		val := personEntityToPersonResponse(item)
-		ret.Persons = append(ret.Persons, val)
-	}
+	ret := personEntityArrayToPersonResponseArray(list)
 	return ret, nil
 }
 
 // AddPerson Adds a person to the system
 func (s *PersonService) AddPerson(ctx context.Context, req *person.AddPersonRequest) (*person.PersonResponse, error) {
-	add := &PersonEntity{
-		firstName:  req.FirstName,
-		middleName: proto.StringValueToString(req.MiddleName),
-		lastName:   req.LastName,
-		suffix:     proto.StringValueToString(req.Suffix),
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "must pass in a value")
 	}
-	model, err := s.db.Add(ctx, add)
+	add := GetPersonEntity()
+	defer PutPersonEntity(add)
+	add.Bind("",
+		req.FirstName,
+		proto.StringValueToString(req.MiddleName),
+		req.LastName,
+		proto.StringValueToString(req.Suffix),
+		nil, nil)
+
+	model, err := s.interceptor.AddPerson(ctx, add)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, translateError(err)
 	}
 	resp := personEntityToPersonResponse(model)
 	return resp, nil
@@ -85,20 +80,21 @@ func (s *PersonService) AddPerson(ctx context.Context, req *person.AddPersonRequ
 
 // UpdatePerson updates an existing person in the system
 func (s *PersonService) UpdatePerson(ctx context.Context, req *person.UpdatePersonRequest) (*person.PersonResponse, error) {
-	if err := s.validateUpdate(req); err != nil {
-		return nil, err
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "must pass in a value")
 	}
-	update := &PersonEntity{
-		ID:         req.Id,
-		firstName:  req.FirstName,
-		middleName: req.MiddleName.Value,
-		lastName:   req.LastName,
-		suffix:     req.Suffix.Value,
-	}
+	update := GetPersonEntity()
+	defer PutPersonEntity(update)
 
-	model, err := s.db.Update(ctx, update)
+	update.Bind(req.Id,
+		req.FirstName,
+		proto.StringValueToString(req.MiddleName),
+		req.LastName,
+		proto.StringValueToString(req.Suffix), nil, nil)
+
+	model, err := s.interceptor.UpdatePerson(ctx, update)
 	if err != nil {
-		return nil, err
+		return nil, translateError(err)
 	}
 	resp := personEntityToPersonResponse(model)
 	return resp, nil
@@ -106,19 +102,16 @@ func (s *PersonService) UpdatePerson(ctx context.Context, req *person.UpdatePers
 
 // DeletePerson Deletes a person from the system
 func (s *PersonService) DeletePerson(ctx context.Context, req *person.PersonRequest) (*empty.Empty, error) {
-	if err := s.validateGet(req); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, err.Error())
-	}
-	_, err := s.db.Delete(ctx, req.Id)
+	_, err := s.interceptor.DeletePerson(ctx, req.Id)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, translateError(err)
 	}
 	return &empty.Empty{}, nil
 }
 
 // Ping checks connectivity on dependencies
 func (s *PersonService) Ping(ctx context.Context, in *empty.Empty) (*empty.Empty, error) {
-	if err := s.db.Ping(ctx); err != nil {
+	if err := s.interceptor.Ping(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	return &empty.Empty{}, nil
@@ -136,4 +129,29 @@ func personEntityToPersonResponse(entity *PersonEntity) *person.PersonResponse {
 	}
 
 	return resp
+}
+
+func personEntityArrayToPersonResponseArray(entities []*PersonEntity) *person.PersonListResponse {
+	ret := &person.PersonListResponse{
+		Persons: make([]*person.PersonResponse, len(entities)),
+	}
+	for _, item := range entities {
+		val := personEntityToPersonResponse(item)
+		ret.Persons = append(ret.Persons, val)
+		PutPersonEntity(item)
+	}
+	return ret
+}
+
+func translateError(err error) error {
+	if err != nil {
+		if errors.Is(err, &br.DataAccessError{}) {
+			return status.Errorf(codes.Internal, err.Error())
+		}
+		if errors.Is(err, &br.ValidationError{}) {
+			return status.Errorf(codes.InvalidArgument, err.Error())
+		}
+		return status.Errorf(codes.Unknown, err.Error())
+	}
+	return nil
 }
