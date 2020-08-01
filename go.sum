@@ -62,8 +62,6 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/morimar32/helpers v0.0.9 h1:UBWrL5Jl1WxUGSOHghKaqxMfduGBVT5d9ygfu7JdruY=
-github.com/morimar32/helpers v0.0.9/go.mod h1:BrhxbXl6xyZ+gSd9RxyH2F6kKN1s7sgNz3xnK7q84Bw=
 github.com/morimar32/helpers v0.1.0 h1:ofce2j7W0SLT2PEe1R+4InOYYMILuKJFfPUCK/fbCGg=
 github.com/morimar32/helpers v0.1.0/go.mod h1:BrhxbXl6xyZ+gSd9RxyH2F6kKN1s7sgNz3xnK7q84Bw=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=

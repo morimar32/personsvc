@@ -1,10 +1,19 @@
+FROM grpc_image:latest as grpc
+COPY proto/* /proto/
+RUN ls /proto/* && cd / && /build_go.sh && ls /generated/*
+
 # https://medium.com/@chemidy/create-the-smallest-and-secured-golang-docker-image-based-on-scratch-4752223b7324
-FROM svc_build_base AS builder
+FROM svc_build_base:latest AS builder
 
-WORKDIR $GOPATH/src/personsvc/
+WORKDIR $GOPATH/src/github.com/morimar32/personsvc/
+
 COPY . .
+COPY --from=grpc /generated .
+RUN mv ./generated/*.json ./swagger
 
-RUN make generate_docker_prep; make generate; make release_docker; make healthchk
+
+RUN make release_docker 
+RUN make healthchk
 RUN cp svc /
 RUN cp ping /
 RUN cp -R swagger /
