@@ -1,13 +1,11 @@
+current_dir := $(shell pwd)
+
 generate:
 	@if [ -d "./generated" ]; then echo "generated  exist"; else mkdir generated; fi
 
-	@protoc -I. -I${GOPATH}/src/github.com/morimar32/helpers/proto/third_party --go_out=plugins=grpc:./generated proto/*.proto
-	@protoc -I. -I${GOPATH}/src/github.com/morimar32/helpers/proto/third_party --plugin=protoc-gen-grpc-gateway=${GOPATH}/bin/protoc-gen-grpc-gateway --grpc-gateway_out=logtostderr=true:./generated 	proto/*.proto
-	@protoc -I. -I${GOPATH}/src/github.com/morimar32/helpers/proto/third_party --plugin=protoc-gen-swagger=${GOPATH}/bin/protoc-gen-swagger --swagger_out=logtostderr=true:./generated proto/*.proto
-
-	@mv ./generated/proto/* ./generated && 	rm -rf ./generated/proto
+	@docker run -v "$(current_dir)"/proto:/proto:ro -v "$(current_dir)"/generated:/generated:rw --name genr8 grpc_image
+	@docker rm genr8
 	@mv ./generated/*.json ./swagger
-
 build:
 	@go build
 
