@@ -3,7 +3,7 @@ COPY proto/* /proto/
 RUN ls /proto/* && cd / && /build_go.sh && ls /generated/*
 
 # https://medium.com/@chemidy/create-the-smallest-and-secured-golang-docker-image-based-on-scratch-4752223b7324
-FROM svc_build_base:latest AS builder
+FROM morimar/go_build_base:latest AS builder
 
 WORKDIR $GOPATH/src/github.com/morimar32/personsvc/
 

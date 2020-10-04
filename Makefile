@@ -3,9 +3,10 @@ current_dir := $(shell pwd)
 generate:
 	@if [ -d "./generated" ]; then echo "generated  exist"; else mkdir generated; fi
 
-	@docker run -v "$(current_dir)"/proto:/proto:ro -v "$(current_dir)"/generated:/generated:rw --name genr8 grpc_image
+	@docker run -v "$(current_dir)"/proto:/proto:ro -v "$(current_dir)"/generated:/generated:rw --name genr8 morimar/grpc_image
 	@docker rm genr8
 	@mv ./generated/*.json ./swagger
+
 build:
 	@go build
 
@@ -41,12 +42,9 @@ docker:
 	@go mod tidy
 	@go mod vendor
 	@cp -R ../helpers/proto/third_party ./vendor/github.com/morimar32/helpers/proto/
-	@docker build . -t person -f ./dockerconfig/Dockerfile-personsvc
+	@docker build . -t person
 	@echo y | docker image prune
 	@rm -rf vendor
-
-docker_build_base:
-	@docker build . -t svc_build_base -f ./dockerconfig/Dockerfile-buildbase
 
 all: generate build
 
