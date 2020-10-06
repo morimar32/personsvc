@@ -29,29 +29,34 @@ var (
 		},
 	}
 	dbOnce     sync.Once
-	dbInstance IPersonRepository
+	dbInstance *PersonRepository
 )
 
 // NewPersonRepository Singleton surrounding a PersonDataAccess instance
-func NewPersonRepository(constring string) IPersonRepository {
+func NewPersonRepository(constring string) *PersonRepository {
 	dbOnce.Do(func() {
 		var err error
 		c, err := dbhelper.InitConnection(constring, 50, 50, (1 * time.Hour))
 		if err != nil {
 			log.Fatal(err)
 		}
-		dbInstance = &PersonRepository{
-			connection: c,
-			getStmt:    getStatement(c, getSQL),
-			listStmt:   getStatement(c, listSQL),
-			updateStmt: getStatement(c, updateSQL),
-			deleteStmt: getStatement(c, deleteSQL),
-			addStmt:    getStatement(c, addSQL),
-		}
+		dbInstance = prepNewRepository(c)
 
 		fmt.Println("Connection configured")
 	})
 	return dbInstance
+}
+
+func prepNewRepository(c *sql.DB) *PersonRepository {
+	i := &PersonRepository{
+		connection: c,
+		getStmt:    getStatement(c, getSQL),
+		listStmt:   getStatement(c, listSQL),
+		updateStmt: getStatement(c, updateSQL),
+		deleteStmt: getStatement(c, deleteSQL),
+		addStmt:    getStatement(c, addSQL),
+	}
+	return i
 }
 
 func getStatement(connection *sql.DB, query string) *sql.Stmt {
@@ -60,16 +65,6 @@ func getStatement(connection *sql.DB, query string) *sql.Stmt {
 		log.Fatal(err)
 	}
 	return stmt
-}
-
-// IPersonRepository defines the database interactions for a person
-type IPersonRepository interface {
-	Ping(ctx context.Context) error
-	Get(ctx context.Context, id string) (*PersonEntity, error)
-	GetList(ctx context.Context) ([]*PersonEntity, error)
-	Add(ctx context.Context, add *PersonEntity) (*PersonEntity, error)
-	Update(ctx context.Context, update *PersonEntity) (*PersonEntity, error)
-	Delete(ctx context.Context, id string) (bool, error)
 }
 
 // PersonRepository specific implementation for interacting with persons in the system
@@ -118,7 +113,7 @@ func (db *PersonRepository) Get(ctx context.Context, id string) (*PersonEntity, 
 
 	entity = GetPersonEntity()
 	entity = entity.Bind(
-		dbhelper.GetGUIDString(results.id),
+		GetGUIDString(results.id),
 		results.firstname,
 		results.middlename.String,
 		results.lastname,
@@ -142,7 +137,7 @@ func (db *PersonRepository) GetList(ctx context.Context) ([]*PersonEntity, error
 		}
 		item := GetPersonEntity()
 		item.Bind(
-			dbhelper.GetGUIDString(results.id),
+			GetGUIDString(results.id),
 			results.firstname,
 			results.middlename.String,
 			results.lastname,
@@ -173,7 +168,7 @@ func (db *PersonRepository) Add(ctx context.Context, add *PersonEntity) (*Person
 		}
 		ret = GetPersonEntity()
 		ret.Bind(
-			dbhelper.GetGUIDString(results.id),
+			GetGUIDString(results.id),
 			results.firstname,
 			results.middlename.String,
 			results.lastname,
@@ -215,4 +210,14 @@ func (db *PersonRepository) Delete(ctx context.Context, id string) (bool, error)
 		return false, fmt.Errorf("No record found for %s", id)
 	}
 	return true, nil
+}
+
+func GetGUIDString(b []byte) string {
+	if len(b) < 8 {
+		return string(b)
+	}
+	b[0], b[1], b[2], b[3] = b[3], b[2], b[1], b[0]
+	b[4], b[5] = b[5], b[4]
+	b[6], b[7] = b[7], b[6]
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }

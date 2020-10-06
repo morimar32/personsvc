@@ -16,7 +16,7 @@ import (
 )
 
 // NewPersonService Factory to create a new PersonService instance
-func NewPersonService(db *IPersonRepository, Log *zap.Logger) person.PersonServer {
+func NewPersonService(db *PersonRepository, Log *zap.Logger) person.PersonServer {
 	ret := &PersonService{
 		log:         Log,
 		interceptor: NewPersonInterceptor(db),
@@ -102,6 +102,9 @@ func (s *PersonService) UpdatePerson(ctx context.Context, req *person.UpdatePers
 
 // DeletePerson Deletes a person from the system
 func (s *PersonService) DeletePerson(ctx context.Context, req *person.PersonRequest) (*empty.Empty, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "must pass in a value")
+	}
 	_, err := s.interceptor.DeletePerson(ctx, req.Id)
 	if err != nil {
 		return nil, translateError(err)

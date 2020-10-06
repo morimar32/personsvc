@@ -43,7 +43,7 @@ func launchGRPC() error {
 	}
 
 	db := service.NewPersonRepository(connectionString)
-	svc := service.NewPersonService(&db, Log)
+	svc := service.NewPersonService(db, Log)
 	s := grpc.NewServer(opts...)
 	person.RegisterPersonServer(s, svc)
 

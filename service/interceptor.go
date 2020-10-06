@@ -9,10 +9,10 @@ import (
 )
 
 type PersonInterceptor struct {
-	db IPersonRepository
+	db PersonRepository
 }
 
-func NewPersonInterceptor(repo *IPersonRepository) PersonInterceptor {
+func NewPersonInterceptor(repo *PersonRepository) PersonInterceptor {
 	val := &PersonInterceptor{
 		db: *repo,
 	}
