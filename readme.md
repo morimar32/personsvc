@@ -34,17 +34,26 @@ The building process will compile, then run tests, and will also fail if a certa
 
 #### Overall Status ####
 * Done
-  * 
-* To-do
+  * initial implementation 🎉
+* Performance To-do/experiments (with benchmarks/pprof dumps)
+  * change json serializer (and perf tuning) - https://github.com/json-iterator/go
+  * change to gogoproto for optimized (de)serialization - https://github.com/gogo/protobuf
+  * change http->gRPC to use unix socket instead of TCP socket (listen on both)
+  * experiment with setting a balast (also verify with docker mem limits) - https://blog.twitch.tv/en/2019/04/10/go-memory-ballast-how-i-learnt-to-stop-worrying-and-love-the-heap/
+  * GC tuning library? - https://github.com/cch123/gogctuner
+  * set HTTP socket options for HTTP & gRPC - https://iximiuz.com/en/posts/go-net-http-setsockopt-example/
   * add sync.Pool - https://www.cockroachlabs.com/blog/how-to-optimize-garbage-collection-in-go/
+* To-do
   * listen for closing signal
   * add volume mount to docker compose for encryption keys
   * add tracing [app dynamics/jaeger support] - https://medium.com/swlh/distributed-tracing-for-go-microservice-with-opentracing-1fc1aec76b3e
   * make sure correlationid is supported [only add if _not_ passed in]
   * make sure context is added/used properly - https://blog.golang.org/context
+  * golang resilience library - https://medium.com/@slok/goresilience-a-go-library-to-improve-applications-resiliency-14d229aee385
   * rate limiting & 
   * extend out where logging is - https://www.oreilly.com/content/how-to-ship-production-grade-go/
   * MUCH MORE TESTS
+  * Add fuzzing tests
 * Possible upcoming changes
   * switch to generated validation - https://github.com/envoyproxy/protoc-gen-validate
   * prometheus support [grpc & general perf stats] - https://prometheus.io/docs/guides/go-application/
