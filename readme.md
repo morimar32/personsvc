@@ -68,6 +68,7 @@ The building process will compile, then run tests, and will also fail if a certa
   * experiment with sonarqube - https://docs.sonarqube.org/latest/analysis/languages/go/
   * explore build tags for combining various interchangable components, such as database (sqlite for RO high volume tests)
   * WASM target?
+  * Bloom filter based caching?
 
 #### Project structure & notes ####
 
