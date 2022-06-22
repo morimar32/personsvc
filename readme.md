@@ -42,7 +42,7 @@ The building process will compile, then run tests, and will also fail if a certa
    * change http->gRPC to use unix socket instead of TCP socket (listen on both)
    * set HTTP socket options for HTTP & gRPC - https://iximiuz.com/en/posts/go-net-http-setsockopt-example/
    * add sync.Pool - https://www.cockroachlabs.com/blog/how-to-optimize-garbage-collection-in-go/
-  * GC/Mem playing - possibly mutually exclusive
+ * GC/Mem playing - possibly mutually exclusive
    * experiment with setting a balast (also verify with docker mem limits) - https://blog.twitch.tv/en/2019/04/10/go-memory-ballast-how-i-learnt-to-stop-worrying-and-love-the-heap/
    * GC tuning library? - https://github.com/cch123/gogctuner
   * Misc evaluations
