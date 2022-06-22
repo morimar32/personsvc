@@ -36,13 +36,17 @@ The building process will compile, then run tests, and will also fail if a certa
 * Done
   * initial implementation 🎉
 * Performance To-do/experiments (with benchmarks/pprof dumps)
-  * change json serializer (and perf tuning) - https://github.com/json-iterator/go
-  * change to gogoproto for optimized (de)serialization - https://github.com/gogo/protobuf
-  * change http->gRPC to use unix socket instead of TCP socket (listen on both)
-  * experiment with setting a balast (also verify with docker mem limits) - https://blog.twitch.tv/en/2019/04/10/go-memory-ballast-how-i-learnt-to-stop-worrying-and-love-the-heap/
-  * GC tuning library? - https://github.com/cch123/gogctuner
-  * set HTTP socket options for HTTP & gRPC - https://iximiuz.com/en/posts/go-net-http-setsockopt-example/
-  * add sync.Pool - https://www.cockroachlabs.com/blog/how-to-optimize-garbage-collection-in-go/
+  * known good/additive
+   * change json serializer (and perf tuning) - https://github.com/json-iterator/go
+   * change to gogoproto for optimized (de)serialization - https://github.com/gogo/protobuf
+   * change http->gRPC to use unix socket instead of TCP socket (listen on both)
+   * set HTTP socket options for HTTP & gRPC - https://iximiuz.com/en/posts/go-net-http-setsockopt-example/
+   * add sync.Pool - https://www.cockroachlabs.com/blog/how-to-optimize-garbage-collection-in-go/
+  * GC/Mem playing - possibly mutually exclusive
+   * experiment with setting a balast (also verify with docker mem limits) - https://blog.twitch.tv/en/2019/04/10/go-memory-ballast-how-i-learnt-to-stop-worrying-and-love-the-heap/
+   * GC tuning library? - https://github.com/cch123/gogctuner
+  * Misc evaluations
+   * adaptive resilience (CoDel) - https://slok.medium.com/goresilience-adaptive-resilience-9500db789609
 * To-do
   * listen for closing signal
   * add volume mount to docker compose for encryption keys
@@ -62,7 +66,8 @@ The building process will compile, then run tests, and will also fail if a certa
   * slight restructuring of project? conceptually extend to supporting more than just a person object
   * possible graphql support, also routed thru gRPC endpoints - https://github.com/99designs/gqlgen
   * experiment with sonarqube - https://docs.sonarqube.org/latest/analysis/languages/go/
-  * explore build tags for combining various interchangable components, such as database
+  * explore build tags for combining various interchangable components, such as database (sqlite for RO high volume tests)
+  * WASM target?
 
 #### Project structure & notes ####
 
