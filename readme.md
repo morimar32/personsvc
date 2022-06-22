@@ -46,7 +46,7 @@ The building process will compile, then run tests, and will also fail if a certa
    * experiment with setting a balast (also verify with docker mem limits) - https://blog.twitch.tv/en/2019/04/10/go-memory-ballast-how-i-learnt-to-stop-worrying-and-love-the-heap/
    * GC tuning library? - https://github.com/cch123/gogctuner
   * Misc evaluations
-   * adaptive resilience (CoDel) - https://slok.medium.com/goresilience-adaptive-resilience-9500db789609
+    * adaptive resilience (CoDel) - https://slok.medium.com/goresilience-adaptive-resilience-9500db789609
 * To-do
   * listen for closing signal
   * add volume mount to docker compose for encryption keys
