@@ -35,6 +35,7 @@ The building process will compile, then run tests, and will also fail if a certa
 #### Overall Status ####
 * Done
   * initial implementation 🎉
+  * scratch-build, non-root, CAP_DROP docker image
 * Performance To-do/experiments (with benchmarks/pprof dumps)
   * known good/additive
    * change json serializer (and perf tuning) - https://github.com/json-iterator/go
@@ -58,12 +59,14 @@ The building process will compile, then run tests, and will also fail if a certa
   * extend out where logging is - https://www.oreilly.com/content/how-to-ship-production-grade-go/
   * MUCH MORE TESTS
   * Add fuzzing tests
+  * simplify/update data access - library isnt needed, more aggressive error checks, and switch to named parameters
+  * Scanner/Valuer 
 * Possible upcoming changes
   * switch to generated validation - https://github.com/envoyproxy/protoc-gen-validate
   * prometheus support [grpc & general perf stats] - https://prometheus.io/docs/guides/go-application/
   * k8s scripts
   * add eventing [rabbitmq? zeromq?]
-  * slight restructuring of project? conceptually extend to supporting more than just a person object
+  * slight restructuring of project? conceptually extend to supporting more than just a person object - https://github.com/golang-standards/project-layout
   * possible graphql support, also routed thru gRPC endpoints - https://github.com/99designs/gqlgen
   * experiment with sonarqube - https://docs.sonarqube.org/latest/analysis/languages/go/
   * explore build tags for combining various interchangable components, such as database (sqlite for RO high volume tests)
