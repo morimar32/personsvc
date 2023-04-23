@@ -1,14 +1,19 @@
-version: '2'
+version: '2.2'
 
 services:
-  grpc:
+  personsvc:
     environment:
-      - DB_HOST=192.168.0.120
+      - DB_HOST=192.168.0.2
       - ENV=Dev
+      - LOG_LEVEL=1
     image: person
-    ports:
-      - "8080:8080"
-      - "9090:9090"
+    #hostname: personsvc01
+    expose:
+      - "8080"
+      - "9090"
+    #ports:
+    #  - "8080-8090:8080"
+    #  - "9090-9100:9090"
     volumes:
       - /secrets/internal-encryption-certificate:/secrets/internal-encryption-certificate:ro
     cap_drop:
@@ -17,3 +22,13 @@ services:
     mem_reservation: 20m
     mem_swappiness: 0
     read_only: true
+    scale: 3
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - personsvc
+    ports:
+      - "8081:8081"

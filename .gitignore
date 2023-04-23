@@ -20,3 +20,6 @@ generated/
 healthcheck/healthcheck
 loadtest/loadtest
 vendor/
+cmd/healthcheck
+cmd/personsvc
+cmd/loadtest

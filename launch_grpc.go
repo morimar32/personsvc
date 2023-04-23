@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net"
 
-	person "personsvc/generated"
-	"personsvc/service"
+	pb "personsvc/generated"
+	person "personsvc/internal/person"
+	service "personsvc/internal/svc"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
@@ -36,23 +37,39 @@ func launchGRPC() error {
 		grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 		grpc_zap.UnaryServerInterceptor(Log, o...),
 	))
-
-	lis, err := net.Listen("tcp", grpcaddress)
+	lis, err := net.Listen("tcp", grpcAddress)
 	if err != nil {
 		return err
 	}
-
-	db := service.NewPersonRepository(connectionString)
-	svc := service.NewPersonService(&db, Log)
+	/*
+		_, err = os.Stat(grpcUnixSocket)
+		if err == nil {
+			err = os.Remove(grpcUnixSocket)
+			if err != nil {
+				return err
+			}
+		}
+		unixLis, err := net.Listen("unix", grpcUnixSocket)
+		if err != nil {
+			return err
+		}
+	*/
+	db := person.NewPersonDB(connectionString)
+	svc := service.NewPersonService(db, Log)
 	s := grpc.NewServer(opts...)
-	person.RegisterPersonServer(s, svc)
+	pb.RegisterPersonServer(s, svc)
 
 	if err = db.Ping(context.Background()); err != nil {
 		return err
 	}
-
+	/*
+		// Serve gRPC Server on unix socket
+		go func() {
+			s.Serve(unixLis)
+		}()
+	*/
 	// Serve gRPC Server
-	Log.Info(fmt.Sprintf("Serving gRPC on http://%s", grpcaddress))
+	Log.Info(fmt.Sprintf("Serving gRPC on http://%s", grpcAddress))
 	if err := s.Serve(lis); err != nil {
 		return err
 	}

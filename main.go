@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	httpAddress = "0.0.0.0:8080"
-	grpcaddress = "0.0.0.0:9090"
+	httpAddress    = "0.0.0.0:8080"
+	grpcAddress    = "0.0.0.0:9090"
+	grpcUnixSocket = "grpc_svc"
 )
 
 var (
@@ -18,6 +19,9 @@ var (
 )
 
 func main() {
+	//ballast
+	//_ = make([]byte, 10<<30)
+
 	go func() {
 		log.Fatal(launchpprof())
 	}()

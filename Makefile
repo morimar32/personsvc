@@ -3,7 +3,7 @@ current_dir := $(shell pwd)
 generate:
 	@if [ -d "./generated" ]; then echo "generated  exist"; else mkdir generated; fi
 
-	@docker run -v "$(current_dir)"/proto:/proto:ro -v "$(current_dir)"/generated:/generated:rw --name genr8 grpc_image
+	@docker run -v "$(current_dir)"/api:/proto:ro -v "$(current_dir)"/generated:/generated:rw --name genr8 grpc_image
 	@docker rm genr8
 	@mv ./generated/*.json ./swagger
 build:
@@ -41,18 +41,15 @@ docker:
 	@go mod tidy
 	@go mod vendor
 	@cp -R ../helpers/proto/third_party ./vendor/github.com/morimar32/helpers/proto/
-	@docker build . -t person -f ./dockerconfig/Dockerfile-personsvc
+	@docker build . -t person -f ./build/Dockerfile
 	@echo y | docker image prune
 	@rm -rf vendor
-
-docker_build_base:
-	@docker build . -t svc_build_base -f ./dockerconfig/Dockerfile-buildbase
 
 all: generate build
 
 healthchk:
-	@cd healthcheck; CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -mod vendor -o ping
-	@cd healthcheck; upx -9 -q ping; mv ping ../
+	@cd cmd; CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o ping healthcheck.go
+	@cd cmd; upx -9 -q ping; mv ping ../
 
 clean:
 	@rm -rf vendor
