@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	person "personsvc/internal/person"
+	"time"
 
 	br "github.com/morimar32/helpers/errors"
 	"github.com/morimar32/helpers/proto"
@@ -37,12 +38,31 @@ func (s *PersonService) GetPerson(ctx context.Context, req *pb.PersonRequest) (*
 	if req == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "must pass in a value")
 	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		deadline = time.Now().Add(300 * time.Millisecond)
+	}
+	ctx, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
+
 	model, err := s.handler.GetPerson(ctx, req.Id)
 	if err != nil {
 		return nil, translateError(err)
 	}
 	defer person.PutPersonEntity(model)
 
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 	resp := personEntityToPersonResponse(model)
 	return resp, nil
 }
@@ -128,7 +148,7 @@ func personEntityToPersonResponse(entity *person.PersonEntity) *pb.PersonRespons
 		Created:    proto.TimeToTimestamp(entity.Created),
 		Updated:    proto.TimeToTimestamp(entity.Updated),
 	}
-
+	person.PutPersonEntity(entity)
 	return resp
 }
 
@@ -136,9 +156,9 @@ func personEntityArrayToPersonResponseArray(entities []*person.PersonEntity) *pb
 	ret := &pb.PersonListResponse{
 		Persons: make([]*pb.PersonResponse, len(entities)),
 	}
-	for _, item := range entities {
+	for i, item := range entities {
 		val := personEntityToPersonResponse(item)
-		ret.Persons = append(ret.Persons, val)
+		ret.Persons[i] = val
 		person.PutPersonEntity(item)
 	}
 	return ret

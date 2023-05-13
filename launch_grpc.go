@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"net"
+	"time"
 
 	pb "personsvc/generated"
 	person "personsvc/internal/person"
 	service "personsvc/internal/svc"
 
+	_ "github.com/denisenkom/go-mssqldb" //mssql implementation
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
@@ -54,7 +58,19 @@ func launchGRPC() error {
 			return err
 		}
 	*/
-	db := person.NewPersonDB(connectionString)
+	conn, err := sql.Open("mssql", connectionString)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Failed to open connection to database: %w", err))
+	}
+	conn.SetMaxOpenConns(50)
+	conn.SetMaxIdleConns(50)
+	conn.SetConnMaxLifetime((1 * time.Hour))
+	err = conn.Ping()
+	if err != nil {
+		log.Fatal(fmt.Errorf("Failed to ping database: %w", err))
+	}
+
+	db := person.NewPersonDB(conn)
 	svc := service.NewPersonService(db, Log)
 	s := grpc.NewServer(opts...)
 	pb.RegisterPersonServer(s, svc)

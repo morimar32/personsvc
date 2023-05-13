@@ -1,0 +1,24 @@
+type Person {
+  id: String!
+  FirstName: String!
+  MiddleName: String
+  LastName: String!
+  Suffix: String
+  CreatedDateTime: String!
+  UpdatedDateTime: String
+}
+
+type Query {
+  persons: [Person!]!
+}
+
+input AddPersonRequest {
+  FirstName: String!
+  MiddleName: String
+  LastName: String!
+  Suffix: String
+}
+
+type Mutation {
+  AddPerson(input: AddPersonRequest!): Person!
+}

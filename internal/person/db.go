@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/denisenkom/go-mssqldb" //mssql implementation
 	dbhelper "github.com/morimar32/helpers/database"
 )
 
@@ -33,20 +32,15 @@ var (
 )
 
 // NewPersonDB Singleton surrounding a PersonDataAccess instance
-func NewPersonDB(constring string) *PersonDB {
+func NewPersonDB(connection *sql.DB) *PersonDB {
 	dbOnce.Do(func() {
-		var err error
-		c, err := dbhelper.InitConnection(constring, 50, 50, (1 * time.Hour))
-		if err != nil {
-			log.Fatal(err)
-		}
 		db := &PersonDB{
-			connection: c,
-			getStmt:    getStatement(c, getSQL),
-			listStmt:   getStatement(c, listSQL),
-			updateStmt: getStatement(c, updateSQL),
-			deleteStmt: getStatement(c, deleteSQL),
-			addStmt:    getStatement(c, addSQL),
+			connection: connection,
+			getStmt:    getStatement(connection, getSQL),
+			listStmt:   getStatement(connection, listSQL),
+			updateStmt: getStatement(connection, updateSQL),
+			deleteStmt: getStatement(connection, deleteSQL),
+			addStmt:    getStatement(connection, addSQL),
 		}
 		dbInstance = *db
 		fmt.Println("Connection configured")
@@ -74,7 +68,7 @@ type PersonDB struct {
 
 const (
 	getSQL    = "SELECT TOP 1 Id, FirstName, MiddleName, LastName, Suffix, CreatedDateTime, UpdatedDateTime FROM UserName WITH (NOLOCK) WHERE Id = ?"
-	listSQL   = "SELECT Id, FirstName, MiddleName, LastName, Suffix, CreatedDateTime, UpdatedDateTime FROM UserName WITH (NOLOCK) ORDER BY LastName, FirstName"
+	listSQL   = "SELECT TOP 10 Id, FirstName, MiddleName, LastName, Suffix, CreatedDateTime, UpdatedDateTime FROM UserName WITH (NOLOCK) ORDER BY LastName, FirstName"
 	updateSQL = "UPDATE UserName SET FirstName = ?, MiddleName = ?, LastName = ?, Suffix = ?, UpdatedDateTime = CURRENT_TIMESTAMP WHERE Id = ?"
 	deleteSQL = "DELETE FROM UserName WHERE Id = ?"
 	addSQL    = `DECLARE @ID UNIQUEIDENTIFIER; SET @ID = NEWID(); 
@@ -93,43 +87,64 @@ func (db *PersonDB) Ping(ctx context.Context) error {
 }
 
 // Get Returns the Person associated with the identifier
-func (db *PersonDB) Get(ctx context.Context, id string) (*PersonEntity, error) {
-
+func (db *PersonDB) Get(ctx context.Context, tx *sql.Tx, id string) (*PersonEntity, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 	var entity *PersonEntity = nil
-
-	rows, err := db.getStmt.QueryContext(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("GetPerson - querying context: %w", err)
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		var (
-			db_id         []byte
-			db_firstname  string
-			db_middlename sql.NullString
-			db_lastname   string
-			db_suffix     sql.NullString
-			db_created    time.Time
-			db_updated    sql.NullTime
-		)
-
-		if err := rows.Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
-			return nil, fmt.Errorf("GetPerson - scanning: %w", err)
+	tx_started := false
+	var err error
+	if tx == nil {
+		tx, err = db.connection.BeginTx(ctx, &sql.TxOptions{})
+		tx_started = true
+		defer tx.Rollback()
+		if err != nil {
+			return nil, err
 		}
-		entity = GetPersonEntity()
-		entity.ID = dbhelper.GetGUIDString(db_id)
-		entity.FirstName = db_firstname
-		entity.MiddleName = db_middlename.String
-		entity.LastName = db_lastname
-		entity.Suffix = db_suffix.String
-		entity.Created = &db_created
-		entity.Updated = nil
-		if db_updated.Valid {
-			entity.Updated = &db_updated.Time
+	}
+	stmt := tx.StmtContext(ctx, db.getStmt)
+	var (
+		db_id         []byte
+		db_firstname  string
+		db_middlename sql.NullString
+		db_lastname   string
+		db_suffix     sql.NullString
+		db_created    time.Time
+		db_updated    sql.NullTime
+	)
+
+	if err = stmt.QueryRowContext(ctx, id).Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("GetPerson - queryrow context: %w", err)
 		}
 	}
 
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	entity = GetPersonEntity()
+	entity.ID = dbhelper.GetGUIDString(db_id)
+	entity.FirstName = db_firstname
+	entity.MiddleName = db_middlename.String
+	entity.LastName = db_lastname
+	entity.Suffix = db_suffix.String
+	entity.Created = &db_created
+	entity.Updated = nil
+	if db_updated.Valid {
+		entity.Updated = &db_updated.Time
+	}
+
+	if tx_started {
+		tx.Commit()
+	}
 	return entity, nil
 }
 
@@ -206,7 +221,7 @@ func (db *PersonDB) Update(ctx context.Context, update *PersonEntity) (*PersonEn
 	if total <= 0 {
 		return nil, fmt.Errorf("No record found for %s", update.ID)
 	}
-	return db.Get(ctx, update.ID)
+	return db.Get(ctx, nil, update.ID)
 }
 
 // Delete removes a Person from the system

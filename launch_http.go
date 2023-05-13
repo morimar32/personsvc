@@ -17,6 +17,11 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	jsoniter "github.com/json-iterator/go"
 	"google.golang.org/grpc"
+
+	"personsvc/graph"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 )
 
 type jsonfast struct{}
@@ -69,22 +74,47 @@ func launchHTTP() error {
 		fmt.Println("could not register handler")
 		return err
 	}
+	client := person.NewPersonClient(conn)
+
 	swagger := http.FileServer(http.Dir("./web/static/swagger"))
+	graphql := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+		Resolvers:  &graph.Resolver{Client: client},
+		Directives: graph.DirectiveRoot{},
+		Complexity: graph.ComplexityRoot{},
+	}))
+	pg := playground.Handler("GraphQL playground", "/query")
 	gwServer := &http.Server{
 		//Addr: httpAddress,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, "/api") {
+				setCORSHeaders(w, r)
+				if r.Method == "OPTIONS" {
+					return
+				}
 				gwmux.ServeHTTP(w, r)
 				return
 			} else if strings.HasPrefix(r.URL.Path, "/proto") {
 				Log.Info("Calling into /proto path")
 				http.ServeFile(w, r, "./api/person.proto")
 				return
+			} else if strings.HasPrefix(r.URL.Path, "/query") {
+				setCORSHeaders(w, r)
+				if r.Method == "OPTIONS" {
+					return
+				}
+				Log.Info("Calling into /query path")
+				graphql.ServeHTTP(w, r)
+				return
+			} else if strings.HasPrefix(r.URL.Path, "/playground") {
+				Log.Info("Calling into /playground path")
+				pg.ServeHTTP(w, r)
+				return
 			}
 
 			swagger.ServeHTTP(w, r)
 		}),
 	}
+
 	lc := net.ListenConfig{
 		Control: func(network, address string, conn syscall.RawConn) error {
 			var operr error
@@ -114,4 +144,11 @@ func UnixDialer(addr string, t time.Duration) (net.Conn, error) {
 		return nil, err
 	}
 	return conn, nil
+}
+
+func setCORSHeaders(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Requested-With")
+	w.Header().Set("Access-Control-Max-Age", "600")
 }

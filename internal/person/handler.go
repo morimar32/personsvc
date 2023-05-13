@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"sync"
 	"sync/atomic"
 
@@ -47,15 +48,33 @@ func (p *PersonHandler) GetPerson(ctx context.Context, id string) (*PersonEntity
 		return nil, br.NewValidationError("Id is required")
 	}
 
-	model, err := p.Db.Get(ctx, id)
-	if err != nil {
-		return nil, br.NewDataAccessErrorFromError(err)
-	}
-	if model == nil {
-		return nil, br.NewValidationError("Person not found")
-	}
+	var result = make(chan *PersonEntity)
+	var e = make(chan error)
+	go func(ctx context.Context, id string, result chan<- *PersonEntity, e chan<- error) {
+		tx, err := p.Db.connection.BeginTx(ctx, &sql.TxOptions{})
+		if err != nil {
+			e <- err
+		} else {
+			defer tx.Rollback()
+			model, err := p.Db.Get(ctx, tx, id)
+			if err != nil {
+				e <- br.NewDataAccessErrorFromError(err)
+			} else if model == nil {
+				e <- br.NewValidationError("Person not found")
+			}
+			tx.Commit()
+			result <- model
+		}
+	}(ctx, id, result, e)
 
-	return model, nil
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case model := <-result:
+		return model, nil
+	case err := <-e:
+		return nil, err
+	}
 }
 
 // GetPersons returns a list of people
