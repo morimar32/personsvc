@@ -23,7 +23,10 @@ func (r *mutationResolver) AddPerson(ctx context.Context, input model.AddPersonR
 func (r *queryResolver) Persons(ctx context.Context) ([]*model.Person, error) {
 	var protoReq empty.Empty
 	var metadata runtime.ServerMetadata
-
+	cap := r.QueryCount.Add(-2)
+	if cap <= 0 {
+		return nil, nil
+	}
 	msg, err := r.Client.GetPersons(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	if err != nil {
 		return nil, err

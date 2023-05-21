@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	retry "personsvc/internal"
 	"sync"
 	"time"
 
@@ -104,7 +105,6 @@ func (db *PersonDB) Get(ctx context.Context, tx *sql.Tx, id string) (*PersonEnti
 			return nil, err
 		}
 	}
-	stmt := tx.StmtContext(ctx, db.getStmt)
 	var (
 		db_id         []byte
 		db_firstname  string
@@ -114,8 +114,12 @@ func (db *PersonDB) Get(ctx context.Context, tx *sql.Tx, id string) (*PersonEnti
 		db_created    time.Time
 		db_updated    sql.NullTime
 	)
+	policy, _ := retry.New(
+		retry.WithRetry(3),
+		retry.WithDelay(time.Millisecond*2),
+	)
 
-	if err = stmt.QueryRowContext(ctx, id).Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
+	if err = policy.QueryRowContext(ctx, tx, db.getStmt, id).Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil

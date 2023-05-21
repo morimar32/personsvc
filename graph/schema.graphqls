@@ -1,4 +1,10 @@
+"""
+This is a test comment on a Person
+"""
 type Person {
+  """
+  This is a test comment on the Id property of a Person
+  """
   id: String!
   FirstName: String!
   MiddleName: String
