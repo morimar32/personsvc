@@ -33,7 +33,7 @@ var (
 )
 
 // NewPersonDB Singleton surrounding a PersonDataAccess instance
-func NewPersonDB(connection *sql.DB) *PersonDB {
+func NewPersonDB(connection *sql.DB, pol *retry.DbRetry) *PersonDB {
 	dbOnce.Do(func() {
 		db := &PersonDB{
 			connection: connection,
@@ -42,6 +42,7 @@ func NewPersonDB(connection *sql.DB) *PersonDB {
 			updateStmt: getStatement(connection, updateSQL),
 			deleteStmt: getStatement(connection, deleteSQL),
 			addStmt:    getStatement(connection, addSQL),
+			policy:     pol,
 		}
 		dbInstance = *db
 		fmt.Println("Connection configured")
@@ -65,6 +66,7 @@ type PersonDB struct {
 	updateStmt *sql.Stmt
 	deleteStmt *sql.Stmt
 	addStmt    *sql.Stmt
+	policy     *retry.DbRetry
 }
 
 const (
@@ -114,12 +116,8 @@ func (db *PersonDB) Get(ctx context.Context, tx *sql.Tx, id string) (*PersonEnti
 		db_created    time.Time
 		db_updated    sql.NullTime
 	)
-	policy, _ := retry.New(
-		retry.WithRetry(3),
-		retry.WithDelay(time.Millisecond*2),
-	)
 
-	if err = policy.QueryRowContext(ctx, tx, db.getStmt, id).Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
+	if err = db.policy.QueryRowContext(ctx, tx, db.getStmt, id).Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil

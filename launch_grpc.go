@@ -9,6 +9,7 @@ import (
 	"time"
 
 	pb "personsvc/generated"
+	retry "personsvc/internal"
 	person "personsvc/internal/person"
 	service "personsvc/internal/svc"
 
@@ -70,7 +71,16 @@ func launchGRPC() error {
 		log.Fatal(fmt.Errorf("Failed to ping database: %w", err))
 	}
 
-	db := person.NewPersonDB(conn)
+	policy, err := retry.New(
+		retry.WithRetry(3),
+		retry.WithDelay(time.Millisecond*5),
+		retry.WithMSSQLSupport(),
+	)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Could not establish db retry policy: %w", err))
+	}
+
+	db := person.NewPersonDB(conn, policy)
 	svc := service.NewPersonService(db, Log)
 	s := grpc.NewServer(opts...)
 	pb.RegisterPersonServer(s, svc)

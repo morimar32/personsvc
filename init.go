@@ -75,7 +75,8 @@ func initLogging() {
 		Control: func(network, address string, conn syscall.RawConn) error {
 			var operr error
 			if err := conn.Control(func(fd uintptr) {
-				operr = syscall.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.TCP_QUICKACK, 1)
+				//operr = syscall.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.TCP_QUICKACK, 1) //linux
+				operr = syscall.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.TIOCGETA, 1) //osx
 			}); err != nil {
 				return err
 			}

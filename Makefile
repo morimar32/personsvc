@@ -3,7 +3,7 @@ current_dir := $(shell pwd)
 generate:
 	@if [ -d "./generated" ]; then echo "generated  exist"; else mkdir generated; fi
 
-	@docker run -v "$(current_dir)"/api:/proto:ro -v "$(current_dir)"/generated:/generated:rw --name genr8 grpc_image
+	@docker run -v "$(current_dir)"/api:/proto:ro -v "$(current_dir)"/generated:/generated:rw --name genr8 morimar/grpc_image
 	@docker rm genr8
 	@mv ./generated/*.json ./swagger
 build:
