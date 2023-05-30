@@ -3,19 +3,27 @@ package service
 import (
 	"context"
 	"database/sql"
+	outbox "personsvc/internal/outbox"
 	"sync"
 	"sync/atomic"
 
 	br "github.com/morimar32/helpers/errors"
 )
 
+const (
+	PublishTopic       = "PersonTopic"
+	AddPersonEventName = "PersonAdded"
+)
+
 type PersonHandler struct {
-	Db PersonDB
+	Db     PersonDB
+	outbox outbox.Outboxer
 }
 
-func NewPersonHandler(repo *PersonDB) PersonHandler {
+func NewPersonHandler(repo *PersonDB, outbox outbox.Outboxer) PersonHandler {
 	val := &PersonHandler{
-		Db: *repo,
+		Db:     *repo,
+		outbox: outbox,
 	}
 	return *val
 }
@@ -96,11 +104,42 @@ func (p *PersonHandler) AddPerson(ctx context.Context, add *PersonEntity) (*Pers
 		return nil, err
 	}
 
-	person, err := p.Db.Add(ctx, add)
-	if err != nil {
+	var result = make(chan *PersonEntity)
+	var e = make(chan error)
+	go func(ctx context.Context, add *PersonEntity, result chan<- *PersonEntity, e chan<- error) {
+		tx, err := p.Db.connection.BeginTx(ctx, &sql.TxOptions{})
+		if err != nil {
+			e <- err
+			return
+		}
+		defer tx.Rollback()
+		val, err := p.Db.Add(ctx, tx, add)
+		if err != nil {
+			e <- err
+			return
+		}
+		err = p.outbox.Publish(tx, PublishTopic, AddPersonEventName, val)
+		if err != nil {
+			e <- err
+			return
+		}
+
+		tx.Commit()
+		result <- val
+
+	}(ctx, add, result, e)
+
+	var val *PersonEntity = nil
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case val = <-result:
+		break
+	case err := <-e:
 		return nil, br.NewDataAccessErrorFromError(err)
 	}
-	return person, nil
+
+	return val, nil
 }
 
 // UpdatePerson updates an existing person record in the system

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"strconv"
@@ -11,7 +10,7 @@ import (
 	"net/http"
 	"syscall"
 
-	"golang.org/x/sys/unix"
+	logging "personsvc/internal/logging"
 
 	"github.com/ZachtimusPrime/Go-Splunk-HTTP/splunk"
 	"github.com/cch123/gogctuner"
@@ -19,6 +18,7 @@ import (
 	env "github.com/morimar32/helpers/environment"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/sys/unix"
 )
 
 func init() {
@@ -40,27 +40,6 @@ func initDb() {
 	connectionString = fmt.Sprintf(connPart, dbServer)
 }
 
-type SplunkWriter struct {
-	Client  splunk.Client
-	Writer  io.Writer
-	entries chan []byte
-}
-
-func NewSplunkWriter(c splunk.Client) zapcore.WriteSyncer {
-	writer := &SplunkWriter{}
-	writer.Client = c
-	sw := zapcore.Lock(writer)
-	return sw
-}
-func (w *SplunkWriter) Sync() error {
-	fmt.Println("SYNCING")
-	return nil
-}
-func (w *SplunkWriter) Write(b []byte) (int, error) {
-	w.Client.Log(string(b))
-	return len(b), nil
-}
-
 func initLogging() {
 	// lvl - global log level: Debug(-1), Info(0), Warn(1), Error(2), DPanic(3), Panic(4), Fatal(5)
 	logLevel, _ := strconv.Atoi(env.GetValueWithDefault("LOG_LEVEL", "1"))
@@ -75,8 +54,8 @@ func initLogging() {
 		Control: func(network, address string, conn syscall.RawConn) error {
 			var operr error
 			if err := conn.Control(func(fd uintptr) {
-				//operr = syscall.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.TCP_QUICKACK, 1) //linux
-				operr = syscall.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.TIOCGETA, 1) //osx
+				operr = syscall.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.TCP_QUICKACK, 1) //linux
+				//operr = syscall.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.TIOCGETA, 1) //osx
 			}); err != nil {
 				return err
 			}
@@ -103,7 +82,7 @@ func initLogging() {
 			Writer: *w,
 		}
 	*/
-	writer := NewSplunkWriter(*splunkClient)
+	writer := logging.NewSplunkWriter(*splunkClient)
 
 	ecfg := zapcore.EncoderConfig{
 		TimeKey:        "timestamp",

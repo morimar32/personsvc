@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	retry "personsvc/internal"
+	retry "personsvc/internal/retry"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	dbhelper "github.com/morimar32/helpers/database"
 )
 
@@ -183,34 +184,35 @@ func (db *PersonDB) GetList(ctx context.Context) ([]*PersonEntity, error) {
 }
 
 // Add creates a Person record in the system
-func (db *PersonDB) Add(ctx context.Context, add *PersonEntity) (*PersonEntity, error) {
-	var ret *PersonEntity = nil
-	var results = getQueryResults.Get().(*personDbResult)
-	defer getQueryResults.Put(results)
+func (db *PersonDB) Add(ctx context.Context, tx *sql.Tx, add *PersonEntity) (*PersonEntity, error) {
 
-	total, err := dbhelper.QueryStatement(ctx, db.addStmt, func(rows *sql.Rows) error {
-		if err := rows.Scan(&results.id, &results.firstname, &results.middlename, &results.lastname, &results.suffix, &results.created, &results.updated); err != nil {
-			return err
+	tx_started := false
+	var err error
+	if tx == nil {
+		tx, err = db.connection.BeginTx(ctx, &sql.TxOptions{})
+		tx_started = true
+		defer tx.Rollback()
+		if err != nil {
+			return nil, err
 		}
-		ret = GetPersonEntity()
-		ret.Bind(
-			dbhelper.GetGUIDString(results.id),
-			results.firstname,
-			results.middlename.String,
-			results.lastname,
-			results.suffix.String,
-			&results.created,
-			dbhelper.NullTimeToTime(results.updated))
-		return nil
-	}, add.FirstName, add.MiddleName, add.LastName, add.Suffix)
+	}
+	var Id = uuid.NewString()
+	stmt := tx.StmtContext(ctx, db.addStmt)
+	_, err = stmt.ExecContext(ctx, Id, add.FirstName, add.MiddleName, add.LastName, add.Suffix)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("PersonDB: AddPerson - Failed exec context: %w", err)
 	}
-	if total <= 0 {
-		return nil, nil
-	}
-	return ret, nil
 
+	ret, err := db.Get(ctx, tx, Id)
+	if err != nil {
+		return nil, fmt.Errorf("PersonDB: AddPerson - Failed querying added record: %w", err)
+	}
+
+	if tx_started {
+		tx.Commit()
+	}
+
+	return ret, nil
 }
 
 // Update updates a person record in the system

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	outbox "personsvc/internal/outbox"
 	person "personsvc/internal/person"
 	"time"
 
@@ -18,10 +19,10 @@ import (
 )
 
 // NewPersonService Factory to create a new PersonService instance
-func NewPersonService(db *person.PersonDB, Log *zap.Logger) pb.PersonServer {
+func NewPersonService(db *person.PersonDB, outbox outbox.Outboxer, Log *zap.Logger) pb.PersonServer {
 	ret := &PersonService{
 		log:     Log,
-		handler: person.NewPersonHandler(db),
+		handler: person.NewPersonHandler(db, outbox),
 	}
 	return ret
 }

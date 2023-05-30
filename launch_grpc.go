@@ -9,8 +9,9 @@ import (
 	"time"
 
 	pb "personsvc/generated"
-	retry "personsvc/internal"
+	outbox "personsvc/internal/outbox"
 	person "personsvc/internal/person"
+	retry "personsvc/internal/retry"
 	service "personsvc/internal/svc"
 
 	_ "github.com/denisenkom/go-mssqldb" //mssql implementation
@@ -80,8 +81,16 @@ func launchGRPC() error {
 		log.Fatal(fmt.Errorf("Could not establish db retry policy: %w", err))
 	}
 
+	out, err := outbox.New(
+		outbox.WithConnection(conn),
+		outbox.WithPolicy(policy),
+	)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Could not create outbox: %w", err))
+	}
+
 	db := person.NewPersonDB(conn, policy)
-	svc := service.NewPersonService(db, Log)
+	svc := service.NewPersonService(db, out, Log)
 	s := grpc.NewServer(opts...)
 	pb.RegisterPersonServer(s, svc)
 

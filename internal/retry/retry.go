@@ -5,42 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"time"
-
-	mssql "github.com/denisenkom/go-mssqldb"
 )
 
 type EvalShouldRetry func(error) bool
-
-type DbRetryOption func(*DbRetry)
-
-func WithRetry(retry int) DbRetryOption {
-	return func(o *DbRetry) {
-		o.Retry = retry
-	}
-}
-
-func WithDelay(delay time.Duration) DbRetryOption {
-	return func(o *DbRetry) {
-		o.Delay = delay
-	}
-}
-
-func WithMSSQLSupport() DbRetryOption {
-	return func(o *DbRetry) {
-		o.evalError = func(err error) bool {
-			if mssqlerr, ok := err.(mssql.Error); ok {
-				switch mssqlerr.Number {
-				case 1205, 1231: // deadlock
-					return true
-				case -2: // timeout
-				default:
-					return false
-				}
-			}
-			return false
-		}
-	}
-}
 
 type DbRetry struct {
 	Retry     int

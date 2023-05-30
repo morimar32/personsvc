@@ -8,6 +8,7 @@ require (
 	github.com/cch123/gogctuner v0.0.0-20220625123136-31caf07e2832
 	github.com/denisenkom/go-mssqldb v0.0.0-20200428022330-06a60b6afbbc
 	github.com/golang/protobuf v1.5.0
+	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.14.6
 	github.com/json-iterator/go v1.1.12
