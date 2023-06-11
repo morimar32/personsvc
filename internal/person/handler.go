@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"database/sql"
-	outbox "personsvc/internal/outbox"
+	"errors"
+	"personsvc/internal"
+	outbox "personsvc/pkg/outbox"
 	"sync"
 	"sync/atomic"
 
@@ -53,7 +55,7 @@ func PutPersonEntity(entity *PersonEntity) {
 // GetPerson returns an instance of a Person
 func (p *PersonHandler) GetPerson(ctx context.Context, id string) (*PersonEntity, error) {
 	if len(id) <= 0 {
-		return nil, br.NewValidationError("Id is required")
+		return nil, errors.Join(errors.New("Person: GetPerson - Id is required"), internal.ErrValidation)
 	}
 
 	var result = make(chan *PersonEntity)
@@ -61,18 +63,26 @@ func (p *PersonHandler) GetPerson(ctx context.Context, id string) (*PersonEntity
 	go func(ctx context.Context, id string, result chan<- *PersonEntity, e chan<- error) {
 		tx, err := p.Db.connection.BeginTx(ctx, &sql.TxOptions{})
 		if err != nil {
-			e <- err
-		} else {
-			defer tx.Rollback()
-			model, err := p.Db.Get(ctx, tx, id)
-			if err != nil {
-				e <- br.NewDataAccessErrorFromError(err)
-			} else if model == nil {
-				e <- br.NewValidationError("Person not found")
-			}
-			tx.Commit()
-			result <- model
+			e <- errors.Join(errors.New("Person: GetPerson - Transaction"), err, internal.ErrSql)
+			return
 		}
+		defer tx.Rollback()
+		model, err := p.Db.Get(ctx, tx, id)
+		if err != nil {
+			e <- errors.Join(errors.New("Person: GetPerson - Get"), err, internal.ErrSql)
+			return
+		}
+		if model == nil {
+			e <- errors.Join(errors.New("Person: GetPerson - Person not found"), err, internal.ErrValidation)
+			return
+		}
+		err = p.outbox.Publish(ctx, tx, "Person", "PersonRead", model)
+		if err != nil {
+			e <- errors.Join(errors.New("Person: GetPerson - Outbox"), err, internal.ErrSql)
+			return
+		}
+		tx.Commit()
+		result <- model
 	}(ctx, id, result, e)
 
 	select {
@@ -118,7 +128,7 @@ func (p *PersonHandler) AddPerson(ctx context.Context, add *PersonEntity) (*Pers
 			e <- err
 			return
 		}
-		err = p.outbox.Publish(tx, PublishTopic, AddPersonEventName, val)
+		err = p.outbox.Publish(ctx, tx, PublishTopic, AddPersonEventName, val)
 		if err != nil {
 			e <- err
 			return

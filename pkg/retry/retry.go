@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -39,7 +40,7 @@ func (policy *DbRetry) QueryRowContext(ctx context.Context, tx *sql.Tx, query *s
 		ret = stmt.QueryRowContext(ctx, args...)
 		err := ret.Err()
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				return ret
 			}
 			shouldRetry = policy.evalError(err)
@@ -69,6 +70,9 @@ func (policy *DbRetry) QueryContext(ctx context.Context, tx *sql.Tx, query *sql.
 		err = nil
 		rows, err = stmt.QueryContext(ctx, args...)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, nil
+			}
 			shouldRetry = policy.evalError(err)
 		}
 		select {
@@ -78,7 +82,7 @@ func (policy *DbRetry) QueryContext(ctx context.Context, tx *sql.Tx, query *sql.
 		}
 
 		if !shouldRetry {
-			return rows, nil
+			return rows, err
 		}
 		time.Sleep(policy.Delay)
 	}
@@ -102,6 +106,7 @@ func (policy *DbRetry) ExecContext(ctx context.Context, tx *sql.Tx, cmd *sql.Stm
 		err = nil
 		result, err = stmt.ExecContext(ctx, cmdargs...)
 		if err != nil {
+			fmt.Printf("%w\n", err)
 			shouldRetry = policy.evalError(err)
 		}
 		select {
@@ -111,7 +116,7 @@ func (policy *DbRetry) ExecContext(ctx context.Context, tx *sql.Tx, cmd *sql.Stm
 		}
 
 		if !shouldRetry {
-			return result, nil
+			return result, err
 		}
 		time.Sleep(policy.Delay)
 	}

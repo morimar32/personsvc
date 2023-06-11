@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"errors"
-	outbox "personsvc/internal/outbox"
 	person "personsvc/internal/person"
+	outbox "personsvc/pkg/outbox"
 	"time"
 
 	br "github.com/morimar32/helpers/errors"

@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
-	retry "personsvc/internal/retry"
+	"personsvc/internal"
+	retry "personsvc/pkg/retry"
 	"sync"
 	"time"
 
@@ -71,7 +73,7 @@ type PersonDB struct {
 }
 
 const (
-	getSQL    = "SELECT TOP 1 Id, FirstName, MiddleName, LastName, Suffix, CreatedDateTime, UpdatedDateTime FROM UserName WITH (NOLOCK) WHERE Id = ?"
+	getSQL    = "SELECT TOP 1 Id, FirstName, MiddleName, LastName, Suffix, CreatedDateTime, UpdatedDateTime FROM UserName WITH (NOLOCK) WHERE Id = @Id"
 	listSQL   = "SELECT TOP 10 Id, FirstName, MiddleName, LastName, Suffix, CreatedDateTime, UpdatedDateTime FROM UserName WITH (NOLOCK) ORDER BY LastName, FirstName"
 	updateSQL = "UPDATE UserName SET FirstName = ?, MiddleName = ?, LastName = ?, Suffix = ?, UpdatedDateTime = CURRENT_TIMESTAMP WHERE Id = ?"
 	deleteSQL = "DELETE FROM UserName WHERE Id = ?"
@@ -118,12 +120,12 @@ func (db *PersonDB) Get(ctx context.Context, tx *sql.Tx, id string) (*PersonEnti
 		db_updated    sql.NullTime
 	)
 
-	if err = db.policy.QueryRowContext(ctx, tx, db.getStmt, id).Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
+	if err = db.policy.QueryRowContext(ctx, tx, db.getStmt, sql.Named("Id", id)).Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			return nil, fmt.Errorf("GetPerson - queryrow context: %w", err)
+			return nil, errors.Join(fmt.Errorf("GetPerson - queryrow context"), err, internal.ErrValidation)
 		}
 	}
 

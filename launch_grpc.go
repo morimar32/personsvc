@@ -9,10 +9,11 @@ import (
 	"time"
 
 	pb "personsvc/generated"
-	outbox "personsvc/internal/outbox"
+	"personsvc/internal/eventing"
 	person "personsvc/internal/person"
-	retry "personsvc/internal/retry"
 	service "personsvc/internal/svc"
+	outbox "personsvc/pkg/outbox"
+	retry "personsvc/pkg/retry"
 
 	_ "github.com/denisenkom/go-mssqldb" //mssql implementation
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -60,7 +61,7 @@ func launchGRPC() error {
 			return err
 		}
 	*/
-	conn, err := sql.Open("mssql", connectionString)
+	conn, err := sql.Open("sqlserver", connectionString)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Failed to open connection to database: %w", err))
 	}
@@ -81,13 +82,28 @@ func launchGRPC() error {
 		log.Fatal(fmt.Errorf("Could not establish db retry policy: %w", err))
 	}
 
+	outboxdb := eventing.NewOutboxStorage(policy)
 	out, err := outbox.New(
 		outbox.WithConnection(conn),
-		outbox.WithPolicy(policy),
+		outbox.WithDatabase(outboxdb),
+		outbox.WithPublisher(&TestPublisher{}),
+		outbox.WithPollingInterval(time.Second*5),
 	)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Could not create outbox: %w", err))
 	}
+	shutdown := make(chan (bool))
+	errors := make(chan (error))
+	err = out.Init(conn, shutdown, errors)
+
+	go func(err chan error) {
+		for {
+			select {
+			case e := <-err:
+				fmt.Printf("%w\n", e)
+			}
+		}
+	}(errors)
 
 	db := person.NewPersonDB(conn, policy)
 	svc := service.NewPersonService(db, out, Log)
@@ -104,10 +120,18 @@ func launchGRPC() error {
 		}()
 	*/
 	// Serve gRPC Server
-	Log.Info(fmt.Sprintf("Serving gRPC on http://%s", grpcAddress))
+	Log.Info(fmt.Sprintf("Serving gRPC on %s", grpcAddress))
 	if err := s.Serve(lis); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+type TestPublisher struct {
+}
+
+func (t *TestPublisher) PublishToQueue(msg outbox.Message) error {
+	fmt.Println("*TESTPUBLISHER* - PublishToQueue")
 	return nil
 }
