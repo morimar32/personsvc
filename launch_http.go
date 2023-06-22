@@ -18,9 +18,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"google.golang.org/grpc"
 
-	"personsvc/graph"
-
-	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 )
 
@@ -74,14 +71,16 @@ func launchHTTP() error {
 		fmt.Println("could not register handler")
 		return err
 	}
-	client := person.NewPersonClient(conn)
+	//client := person.NewPersonClient(conn)
 
 	swagger := http.FileServer(http.Dir("./web/static/swagger"))
-	graphql := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
-		Resolvers:  &graph.Resolver{Client: client},
-		Directives: graph.DirectiveRoot{},
-		Complexity: graph.ComplexityRoot{},
-	}))
+	/*
+		graphql := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+			Resolvers:  &graph.Resolver{Client: client},
+			Directives: graph.DirectiveRoot{},
+			Complexity: graph.ComplexityRoot{},
+		}))
+	*/
 	pg := playground.Handler("GraphQL playground", "/query")
 	gwServer := &http.Server{
 		//Addr: httpAddress,
@@ -103,7 +102,7 @@ func launchHTTP() error {
 					return
 				}
 				Log.Info("Calling into /query path")
-				graphql.ServeHTTP(w, r)
+				//graphql.ServeHTTP(w, r)
 				return
 			} else if strings.HasPrefix(r.URL.Path, "/playground") {
 				Log.Info("Calling into /playground path")

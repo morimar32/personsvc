@@ -14,6 +14,8 @@ const (
 
 var (
 	connectionString = ""
+	queueAddress     = ""
+	queueName        = ""
 	//Log centralized entry point for logging
 	Log *zap.Logger
 )

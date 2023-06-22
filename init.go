@@ -28,6 +28,7 @@ func init() {
 	go gogctuner.NewTuner(true, 95)
 	initLogging()
 	initDb()
+	initQueue()
 }
 
 func initDb() {
@@ -42,7 +43,7 @@ func initDb() {
 
 func initLogging() {
 	// lvl - global log level: Debug(-1), Info(0), Warn(1), Error(2), DPanic(3), Panic(4), Fatal(5)
-	logLevel, _ := strconv.Atoi(env.GetValueWithDefault("LOG_LEVEL", "1"))
+	logLevel, _ := strconv.Atoi(env.GetValueWithDefault("logLevel", "-1"))
 	globalLevel := zapcore.Level(logLevel)
 	lowPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		//return true
@@ -108,4 +109,9 @@ func initLogging() {
 	zap.RedirectStdLog(Log)
 	grpc_zap.ReplaceGrpcLogger(Log)
 
+}
+
+func initQueue() {
+	queueAddress = env.GetValueWithDefault("queueAddress", "")
+	queueName = env.GetValueWithDefault("queueName", "")
 }

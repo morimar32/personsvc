@@ -63,6 +63,7 @@ func (o *Outbox) pollMessages(shutdown <-chan bool, errors chan<- error) {
 	for {
 		select {
 		case <-shutdown:
+			o.publisher.Shutdown()
 			return
 		case <-ticker.C:
 			o.timerElapsed(errors)
@@ -94,7 +95,7 @@ func (o *Outbox) timerElapsed(errors chan<- error) {
 	}
 
 	for _, msg := range *messages {
-		err = o.publisher.PublishToQueue(msg)
+		err = o.publisher.PublishToQueue(context.Background(), msg)
 		if err != nil {
 			errors <- err
 			err = o.databaser.ErroredEvent(context.Background(), tx, msg.Id, err)

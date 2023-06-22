@@ -55,3 +55,6 @@ clean:
 	@rm -rf vendor
 	@rm person
 	@rm client/client
+
+graphregen:
+	@go run github.com/99designs/gqlgen generate

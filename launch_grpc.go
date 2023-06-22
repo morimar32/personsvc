@@ -82,11 +82,16 @@ func launchGRPC() error {
 		log.Fatal(fmt.Errorf("Could not establish db retry policy: %w", err))
 	}
 
+	publisher, err := eventing.NewPublisher(queueAddress, queueName)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Could not create outbox publisher: %w", err))
+	}
+
 	outboxdb := eventing.NewOutboxStorage(policy)
 	out, err := outbox.New(
 		outbox.WithConnection(conn),
 		outbox.WithDatabase(outboxdb),
-		outbox.WithPublisher(&TestPublisher{}),
+		outbox.WithPublisher(publisher),
 		outbox.WithPollingInterval(time.Second*5),
 	)
 	if err != nil {
@@ -125,13 +130,5 @@ func launchGRPC() error {
 		return err
 	}
 
-	return nil
-}
-
-type TestPublisher struct {
-}
-
-func (t *TestPublisher) PublishToQueue(msg outbox.Message) error {
-	fmt.Println("*TESTPUBLISHER* - PublishToQueue")
 	return nil
 }

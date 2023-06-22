@@ -1,6 +1,9 @@
 package outbox
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type Message struct {
 	Id            string
@@ -10,5 +13,6 @@ type Message struct {
 }
 
 type Publisher interface {
-	PublishToQueue(msg Message) error
+	PublishToQueue(ctx context.Context, msg Message) error
+	Shutdown()
 }
