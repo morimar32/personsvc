@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"personsvc/pkg/outbox"
-	"personsvc/pkg/retry"
 	"sync"
 	"time"
+
+	"github.com/morimar32/helpers/outbox"
+	"github.com/morimar32/helpers/retry"
 
 	"github.com/google/uuid"
 )

@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	person "personsvc/internal/person"
-	outbox "personsvc/pkg/outbox"
 	"time"
+
+	outbox "github.com/morimar32/helpers/outbox"
 
 	br "github.com/morimar32/helpers/errors"
 	"github.com/morimar32/helpers/proto"

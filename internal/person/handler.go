@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"personsvc/internal"
-	outbox "personsvc/pkg/outbox"
+
+	outbox "github.com/morimar32/helpers/outbox"
+
 	"sync"
 	"sync/atomic"
 

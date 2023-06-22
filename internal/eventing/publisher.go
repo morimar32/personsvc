@@ -3,7 +3,8 @@ package eventing
 import (
 	"context"
 	"fmt"
-	"personsvc/pkg/outbox"
+
+	"github.com/morimar32/helpers/outbox"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )

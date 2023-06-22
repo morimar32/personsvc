@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"log"
 	"personsvc/internal"
-	retry "personsvc/pkg/retry"
+
+	retry "github.com/morimar32/helpers/retry"
+
 	"sync"
 	"time"
 

@@ -12,8 +12,9 @@ import (
 	"personsvc/internal/eventing"
 	person "personsvc/internal/person"
 	service "personsvc/internal/svc"
-	outbox "personsvc/pkg/outbox"
-	retry "personsvc/pkg/retry"
+
+	"github.com/morimar32/helpers/outbox"
+	"github.com/morimar32/helpers/retry"
 
 	_ "github.com/denisenkom/go-mssqldb" //mssql implementation
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
