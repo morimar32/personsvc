@@ -95,7 +95,56 @@ func (db *PersonDB) Ping(ctx context.Context) error {
 }
 
 // Get Returns the Person associated with the identifier
-func (db *PersonDB) Get(ctx context.Context, tx *sql.Tx, id string) (*PersonEntity, error) {
+func (db *PersonDB) Get(ctx context.Context, id string) (*PersonEntity, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+	var entity *PersonEntity = nil
+	var err error
+
+	var (
+		db_id         []byte
+		db_firstname  string
+		db_middlename sql.NullString
+		db_lastname   string
+		db_suffix     sql.NullString
+		db_created    time.Time
+		db_updated    sql.NullTime
+	)
+
+	if err = db.getStmt.QueryRowContext(ctx, sql.Named("Id", id)).Scan(&db_id, &db_firstname, &db_middlename, &db_lastname, &db_suffix, &db_created, &db_updated); err != nil {
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, errors.Join(fmt.Errorf("GetPerson - queryrow context"), err, internal.ErrValidation)
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	entity = GetPersonEntity()
+	entity.ID = dbhelper.GetGUIDString(db_id)
+	entity.FirstName = db_firstname
+	entity.MiddleName = db_middlename.String
+	entity.LastName = db_lastname
+	entity.Suffix = db_suffix.String
+	entity.Created = &db_created
+	entity.Updated = nil
+	if db_updated.Valid {
+		entity.Updated = &db_updated.Time
+	}
+
+	return entity, nil
+}
+
+func (db *PersonDB) Get_WithTx(ctx context.Context, tx *sql.Tx, id string) (*PersonEntity, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -207,7 +256,7 @@ func (db *PersonDB) Add(ctx context.Context, tx *sql.Tx, add *PersonEntity) (*Pe
 		return nil, fmt.Errorf("PersonDB: AddPerson - Failed exec context: %w", err)
 	}
 
-	ret, err := db.Get(ctx, tx, Id)
+	ret, err := db.Get_WithTx(ctx, tx, Id)
 	if err != nil {
 		return nil, fmt.Errorf("PersonDB: AddPerson - Failed querying added record: %w", err)
 	}
@@ -229,7 +278,7 @@ func (db *PersonDB) Update(ctx context.Context, update *PersonEntity) (*PersonEn
 	if total <= 0 {
 		return nil, fmt.Errorf("No record found for %s", update.ID)
 	}
-	return db.Get(ctx, nil, update.ID)
+	return db.Get_WithTx(ctx, nil, update.ID)
 }
 
 // Delete removes a Person from the system

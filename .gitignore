@@ -23,3 +23,6 @@ vendor/
 cmd/healthcheck
 cmd/personsvc
 cmd/loadtest
+profile
+profile2
+profile3

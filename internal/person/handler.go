@@ -63,13 +63,7 @@ func (p *PersonHandler) GetPerson(ctx context.Context, id string) (*PersonEntity
 	var result = make(chan *PersonEntity)
 	var e = make(chan error)
 	go func(ctx context.Context, id string, result chan<- *PersonEntity, e chan<- error) {
-		tx, err := p.Db.connection.BeginTx(ctx, &sql.TxOptions{})
-		if err != nil {
-			e <- errors.Join(errors.New("Person: GetPerson - Transaction"), err, internal.ErrSql)
-			return
-		}
-		defer tx.Rollback()
-		model, err := p.Db.Get(ctx, tx, id)
+		model, err := p.Db.Get(ctx, id)
 		if err != nil {
 			e <- errors.Join(errors.New("Person: GetPerson - Get"), err, internal.ErrSql)
 			return
@@ -78,11 +72,53 @@ func (p *PersonHandler) GetPerson(ctx context.Context, id string) (*PersonEntity
 			e <- errors.Join(errors.New("Person: GetPerson - Person not found"), err, internal.ErrValidation)
 			return
 		}
-		err = p.outbox.Publish(ctx, tx, "Person", "PersonRead", model)
+		// err = p.outbox.Publish(ctx, tx, "Person", "PersonRead", model)
+		// if err != nil {
+		// 	e <- errors.Join(errors.New("Person: GetPerson - Outbox"), err, internal.ErrSql)
+		// 	return
+		// }
+
+		result <- model
+	}(ctx, id, result, e)
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case model := <-result:
+		return model, nil
+	case err := <-e:
+		return nil, err
+	}
+}
+
+func (p *PersonHandler) GetPerson_WithTx(ctx context.Context, id string) (*PersonEntity, error) {
+	if len(id) <= 0 {
+		return nil, errors.Join(errors.New("Person: GetPerson - Id is required"), internal.ErrValidation)
+	}
+
+	var result = make(chan *PersonEntity)
+	var e = make(chan error)
+	go func(ctx context.Context, id string, result chan<- *PersonEntity, e chan<- error) {
+		tx, err := p.Db.connection.BeginTx(ctx, &sql.TxOptions{})
 		if err != nil {
-			e <- errors.Join(errors.New("Person: GetPerson - Outbox"), err, internal.ErrSql)
+			e <- errors.Join(errors.New("Person: GetPerson - Transaction"), err, internal.ErrSql)
 			return
 		}
+		defer tx.Rollback()
+		model, err := p.Db.Get_WithTx(ctx, tx, id)
+		if err != nil {
+			e <- errors.Join(errors.New("Person: GetPerson - Get"), err, internal.ErrSql)
+			return
+		}
+		if model == nil {
+			e <- errors.Join(errors.New("Person: GetPerson - Person not found"), err, internal.ErrValidation)
+			return
+		}
+		// err = p.outbox.Publish(ctx, tx, "Person", "PersonRead", model)
+		// if err != nil {
+		// 	e <- errors.Join(errors.New("Person: GetPerson - Outbox"), err, internal.ErrSql)
+		// 	return
+		// }
 		tx.Commit()
 		result <- model
 	}(ctx, id, result, e)

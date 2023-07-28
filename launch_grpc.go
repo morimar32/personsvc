@@ -34,6 +34,10 @@ func codeToLevel(code codes.Code) zapcore.Level {
 	return grpc_zap.DefaultCodeToLevel(code)
 }
 
+var (
+	Person_svc pb.PersonServer
+)
+
 func launchGRPC() error {
 	o := []grpc_zap.Option{
 		grpc_zap.WithLevels(codeToLevel),
@@ -112,9 +116,9 @@ func launchGRPC() error {
 	}(errors)
 
 	db := person.NewPersonDB(conn, policy)
-	svc := service.NewPersonService(db, out, Log)
+	Person_svc = service.NewPersonService(db, out, Log)
 	s := grpc.NewServer(opts...)
-	pb.RegisterPersonServer(s, svc)
+	pb.RegisterPersonServer(s, Person_svc)
 
 	if err = db.Ping(context.Background()); err != nil {
 		return err

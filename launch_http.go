@@ -66,11 +66,20 @@ func launchHTTP() error {
 	gwmux := runtime.NewServeMux(
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, j),
 	)
-	err = person.RegisterPersonHandler(context.Background(), gwmux, conn)
+	//*
+	err = person.RegisterPersonHandlerServer(context.Background(), gwmux, Person_svc)
 	if err != nil {
 		fmt.Println("could not register handler")
 		return err
 	}
+	//*/
+	/*
+		err = person.RegisterPersonHandler(context.Background(), gwmux, conn)
+		if err != nil {
+			fmt.Println("could not register handler")
+			return err
+		}
+		//*/
 	//client := person.NewPersonClient(conn)
 
 	swagger := http.FileServer(http.Dir("./web/static/swagger"))
